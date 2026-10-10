@@ -1,0 +1,73 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar"><h1 class="page-title">📊 Exam Results</h1></div>
+    <div class="content-area fade-in">
+      <div class="exam-container">
+        <% if (notifyQueued) { %>
+        <div class="alert alert-info">📩 Grade notification has been queued and will be sent shortly.</div>
+        <% } %>
+        <div class="card" style="margin-bottom:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="font-size:22px;font-weight:700"><%= exam.title %></h2>
+              <p style="color:var(--text-muted);font-size:13px"><%= exam.course_name %> · Student: <%= student.full_name %></p>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:48px;font-weight:900;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><%= session.percentage || 0 %>%</div>
+              <div style="font-size:14px;color:var(--text-muted)"><%= session.score || 0 %> / <%= session.total_marks || exam.total_marks %></div>
+              <span class="badge badge-<%= (session.percentage || 0) >= 50 ? 'success' : 'danger' %>" style="margin-top:8px"><%= (session.percentage || 0) >= 50 ? 'PASSED' : 'FAILED' %></span>
+            </div>
+          </div>
+          <% if (session.is_flagged) { %>
+          <div class="alert alert-warning" style="margin-top:16px">⚠️ This session was flagged: <%= session.flag_reason %></div>
+          <% } %>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px">
+            <div style="text-align:center;padding:12px;background:var(--bg-input);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-muted)">Tab Switches</div>
+              <div style="font-size:20px;font-weight:700;color:<%= session.tab_switches > 0 ? 'var(--warning)' : 'var(--success)' %>"><%= session.tab_switches %></div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--bg-input);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-muted)">Focus Loss</div>
+              <div style="font-size:20px;font-weight:700;color:<%= session.focus_loss_count > 0 ? 'var(--warning)' : 'var(--success)' %>"><%= session.focus_loss_count %></div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--bg-input);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-muted)">Status</div>
+              <div style="font-size:14px;font-weight:700"><%= session.status %></div>
+            </div>
+          </div>
+        </div>
+        <h3 style="margin-bottom:16px">📝 Question Breakdown</h3>
+        <% questions.forEach(function(q, idx) { const ans = answers.find(a => a.question_id === q.id); %>
+        <div class="question-card" style="border-left:4px solid <%= ans && ans.is_correct ? 'var(--success)' : q.question_type === 'open_ended' ? 'var(--info)' : 'var(--danger)' %>">
+          <div class="question-number">Q<%= idx+1 %> <span class="question-marks"><%= ans ? ans.marks_awarded : 0 %>/<%= q.marks %> marks</span></div>
+          <div class="question-text"><%= q.question_text %></div>
+          <% if (q.question_type !== 'open_ended') { %>
+          <div style="font-size:13px;margin-top:8px">
+            <div style="color:var(--text-muted)">Your answer: <strong style="color:<%= ans && ans.is_correct ? 'var(--success)' : 'var(--danger)' %>"><%= ans ? ans.student_answer : 'Not answered' %></strong></div>
+            <div style="color:var(--success);margin-top:4px">✅ Correct: <strong><%= q.correct_answer %></strong></div>
+          </div>
+          <% } else { %>
+          <div style="font-size:13px;margin-top:8px;padding:12px;background:var(--bg-input);border-radius:8px"><%= ans ? ans.student_answer : 'Not answered' %></div>
+          <% } %>
+        </div>
+        <% }); %>
+        <% if (proctoring.length > 0 && typeof user !== 'undefined' && user.role !== 'student') { %>
+        <div class="card" style="margin-top:24px">
+          <h3 class="card-title" style="margin-bottom:12px">🔍 Proctoring Events</h3>
+          <div class="table-container">
+            <table><thead><tr><th>Time</th><th>Event</th><th>Details</th></tr></thead><tbody>
+              <% proctoring.forEach(function(e) { %>
+              <tr><td style="font-size:12px"><%= e.created_at %></td><td><span class="badge badge-warning"><%= e.event_type %></span></td><td style="font-size:12px"><%= e.details %></td></tr>
+              <% }); %>
+            </tbody></table>
+          </div>
+        </div>
+        <% } %>
+        <div style="margin-top:24px"><a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a></div>
+      </div>
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,109 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar">
+      <h1 class="page-title">📈 My Grades</h1>
+      <span class="badge badge-info">CANVAS STYLE</span>
+    </div>
+    
+    <div class="content-area fade-in">
+      <% if (exams.length === 0) { %>
+        <div class="card" style="text-align:center; padding:40px; color:var(--text-muted);">
+          No exams taken yet. Enrolled exams will appear here once you take them.
+        </div>
+      <% } %>
+
+      <% exams.forEach(exam => { %>
+        <div class="card" style="margin-bottom:30px; border-top:4px solid var(--primary);">
+          <div style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;">
+            <h2 style="margin:0 0 8px 0; font-size:20px; color:var(--text);"><%= exam.title %></h2>
+            <div style="display:flex; flex-wrap:wrap; gap:20px; font-size:13px; color:var(--text-muted);">
+              <div><strong>Course:</strong> <%= exam.course_name %></div>
+              <div><strong>Points:</strong> <%= exam.total_marks %></div>
+              <div><strong>Questions:</strong> <%= exam.question_count %></div>
+              <div><strong>Time Limit:</strong> <%= exam.duration_minutes %> Minutes</div>
+              <div><strong>Allowed Attempts:</strong> <%= exam.max_attempts %></div>
+            </div>
+            <% if (exam.highest_attempt) { %>
+              <div style="margin-top:16px; padding:12px; background:rgba(40,167,69,0.1); border-left:3px solid var(--success); border-radius:4px;">
+                <div style="font-weight:700; color:var(--success); font-size:14px;">Highest Score: <%= exam.highest_attempt.score %> out of <%= exam.total_marks %> (<%= exam.highest_attempt.percentage %>%)</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">This is the score kept for your final grade.</div>
+              </div>
+            <% } %>
+          </div>
+
+          <% if (exam.attempts && exam.attempts.length > 0) { %>
+            <h3 style="font-size:16px; margin-bottom:12px; font-weight:600;">Attempt History</h3>
+            <div class="table-container" style="margin-bottom:24px;">
+              <table style="width:100%; border-collapse:collapse;">
+                <thead style="background:var(--bg-lighter);">
+                  <tr>
+                    <th style="padding:10px; text-align:left; border-bottom:1px solid var(--border);">Attempt</th>
+                    <th style="padding:10px; text-align:left; border-bottom:1px solid var(--border);">Time</th>
+                    <th style="padding:10px; text-align:left; border-bottom:1px solid var(--border);">Score</th>
+                    <th style="padding:10px; text-align:left; border-bottom:1px solid var(--border);">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% exam.attempts.forEach((attempt, index) => { 
+                     const attemptNum = exam.attempts.length - index;
+                     const isHighest = exam.highest_attempt && attempt.id === exam.highest_attempt.id;
+                     const isLatest = index === 0;
+                     
+                     // Calculate time taken if available (dummy calculation if not)
+                     let timeTaken = "N/A";
+                     if (attempt.start_time && attempt.submitted_at) {
+                       const start = new Date(attempt.start_time);
+                       const end = new Date(attempt.submitted_at);
+                       const diffMins = Math.round((end - start) / 60000);
+                       timeTaken = diffMins + " minutes";
+                     }
+                     const rowStyle = isHighest ? 'style="background:rgba(40,167,69,0.05);"' : '';
+                  %>
+                  <tr <%- rowStyle %>>
+                    <td style="padding:10px; border-bottom:1px solid var(--border);">
+                      <% if (isLatest) { %><span class="badge badge-info" style="margin-right:8px;">LATEST</span><% } %>
+                      <% if (isHighest) { %><span class="badge badge-success" style="margin-right:8px;">HIGHEST</span><% } %>
+                      Attempt <%= attemptNum %>
+                    </td>
+                    <td style="padding:10px; border-bottom:1px solid var(--border);"><%= timeTaken %></td>
+                    <td style="padding:10px; border-bottom:1px solid var(--border); font-weight:bold;">
+                      <%= attempt.score %> out of <%= exam.total_marks %>
+                    </td>
+                    <td style="padding:10px; border-bottom:1px solid var(--border);">
+                      <% if (attempt.status === 'submitted' && attempt.percentage === null) { %>
+                        <span class="badge badge-warning">Pending</span>
+                      <% } else { %>
+                        <span class="badge badge-<%= attempt.status === 'graded' ? 'success' : 'secondary' %>"><%= attempt.status %></span>
+                      <% } %>
+                    </td>
+                  </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Class Statistics -->
+            <% if (exam.class_stats && exam.class_stats.avg_score !== null) { %>
+            <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:16px;">
+              <h4 style="margin:0 0 12px 0; font-size:14px; color:var(--text-muted);">Class Statistics</h4>
+              <div style="display:flex; gap:24px;">
+                <div><span style="font-size:20px; font-weight:700; color:var(--success);"><%= Math.round(exam.class_stats.max_score) %>%</span><div style="font-size:11px; color:var(--text-muted);">Highest</div></div>
+                <div><span style="font-size:20px; font-weight:700; color:var(--info);"><%= Math.round(exam.class_stats.avg_score) %>%</span><div style="font-size:11px; color:var(--text-muted);">Average</div></div>
+                <div><span style="font-size:20px; font-weight:700; color:var(--danger);"><%= Math.round(exam.class_stats.min_score) %>%</span><div style="font-size:11px; color:var(--text-muted);">Lowest</div></div>
+              </div>
+            </div>
+            <% } %>
+
+          <% } else { %>
+            <div style="padding:20px; background:var(--bg-lighter); border-radius:6px; color:var(--text-muted); text-align:center;">
+              You have not made any attempts for this exam yet.
+            </div>
+          <% } %>
+        </div>
+      <% }); %>
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,201 @@
+<%- include('../partials/header') %>
+<% if (antiCheat) { %>
+<div class="proctor-bar" id="proctorBar">🔴 PROCTORED EXAM — Anti-cheat monitoring active — Tab switches: <span id="tabSwitchCount">0</span></div>
+<% } %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content" style="<%= antiCheat ? 'padding-top:40px' : '' %>">
+    <div class="content-area">
+      <div class="exam-container fade-in">
+        <div class="exam-header">
+          <div>
+            <h2 style="font-size:20px;font-weight:700"><%= exam.title %></h2>
+            <p style="font-size:13px;color:var(--text-muted)"><%= exam.course_name %> · <%= exam.total_marks %> marks</p>
+          </div>
+          <div style="text-align:right">
+            <% if (antiCheat) { %>
+            <div style="margin-bottom:8px;font-size:11px;color:#e74c3c;font-weight:bold;">🛡️ Strict Mode Active</div>
+            <% } %>
+            <div class="exam-timer" id="examTimer">--:--</div>
+            <div style="font-size:11px;color:var(--text-muted)">Time Remaining</div>
+          </div>
+        </div>
+        <form method="POST" action="/exams/<%= exam.id %>/submit" id="examForm" onsubmit="if(typeof isSubmitting !== 'undefined') isSubmitting = true;">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+          <input type="hidden" name="session_id" value="<%= session.id %>">
+          <% questions.forEach(function(q, idx) { %>
+          <div class="question-card" id="q-<%= q.id %>">
+            <div class="question-number">Question <%= idx + 1 %> of <%= questions.length %> <span class="question-marks"><%= q.marks %> marks</span></div>
+            <div class="question-text"><%= q.question_text %></div>
+            <% if (q.question_type === 'mcq' || q.question_type === 'true_false') { %>
+              <div class="option-group">
+                <% try { JSON.parse(q.options).forEach(function(opt) { %>
+                <label class="option-label">
+                  <input type="radio" name="answers[<%= q.id %>]" value="<%= opt %>" <%= (answerMap[q.id] === opt) ? 'checked' : '' %>
+                    onchange="autoSave('<%= session.id %>','<%= q.id %>',this.value)">
+                  <span><%= opt %></span>
+                </label>
+                <% }); } catch(e) {} %>
+              </div>
+            <% } else { %>
+              <textarea class="form-textarea" name="answers[<%= q.id %>]" placeholder="Type your answer (max 500 characters)..." rows="5" maxlength="500"
+                onblur="autoSave('<%= session.id %>','<%= q.id %>',this.value)"><%= answerMap[q.id] || '' %></textarea>
+            <% } %>
+          </div>
+          <% }); %>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
+            <div style="font-size:13px;color:var(--text-muted)">💾 Answers auto-saved</div>
+            <button type="button" class="btn btn-primary btn-lg" onclick="showSubmitModal()">📤 Submit Exam</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+// Exam Timer
+const duration = <%= exam.duration_minutes %>;
+// SQLite datetime('now') is UTC. Replace space with T and append Z to ensure correct parsing
+const startTime = new Date('<%= session.start_time %>'.replace(' ', 'T') + 'Z').getTime();
+const endTime = startTime + (duration * 60 * 1000);
+function updateTimer() {
+  const now = Date.now();
+  const remaining = endTime - now;
+  if (remaining <= 0) { document.getElementById('examForm').submit(); return; }
+  const min = Math.floor(remaining / 60000);
+  const sec = Math.floor((remaining % 60000) / 1000);
+  const el = document.getElementById('examTimer');
+  el.textContent = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  if (min < 5) el.classList.add('warning');
+}
+setInterval(updateTimer, 1000);
+updateTimer();
+
+// Auto-save
+function autoSave(sessionId, questionId, answer) {
+  fetch('/exams/api/exam-session/save-answer', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({session_id: sessionId, question_id: questionId, answer})
+  }).catch(()=>{});
+}
+
+<% if (antiCheat) { %>
+// 🛡️ High-Security Anti-Cheat Monitoring
+const sessionId = '<%= session.id %>';
+let isStrictMode = false;
+let violationCount = 0;
+let isSubmitting = false;
+
+function logEvent(type, details) {
+  fetch('/exams/api/exam-session/proctoring-event', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({session_id: sessionId, event_type: type, details})
+  }).catch(()=>{});
+}
+
+function triggerStrictAction(reason) {
+  if (!isStrictMode || isSubmitting) return;
+  isSubmitting = true;
+  
+  // Show in-page violation modal instead of native alert
+  document.getElementById('violationReason').textContent = reason;
+  document.getElementById('violationModal').style.display = 'flex';
+  
+  // Auto submit after short delay so they can read the message
+  setTimeout(() => {
+    document.getElementById('examForm').submit();
+  }, 2500);
+}
+
+// Overlay for Strict Mode Initialization
+document.write(`
+  <style>
+    #strictOverlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.95); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: white; text-align: center; padding: 20px;
+    }
+  </style>
+  <div id="strictOverlay">
+    <h2 style="font-size:2rem; margin-bottom: 10px;">🛡️ Proctored Exam Environment</h2>
+    <p style="max-width: 600px; line-height: 1.6; margin-bottom: 20px; color: #cbd5e1;">
+      This is a strictly monitored exam. Once you begin, you must remain in fullscreen mode. 
+      <strong>Switching tabs, opening other applications, or exiting fullscreen will result in an immediate automatic submission.</strong>
+    </p>
+    <button type="button" class="btn btn-primary btn-lg" onclick="startStrictExam()" style="font-size: 1.2rem; padding: 15px 30px;">
+      Enter Fullscreen & Begin Exam
+    </button>
+  </div>
+`);
+
+function startStrictExam() {
+  document.documentElement.requestFullscreen().catch(()=>{});
+  document.getElementById('strictOverlay').style.display = 'none';
+  // Small delay to allow fullscreen transition without triggering blur
+  setTimeout(() => {
+    isStrictMode = true;
+  }, 1000);
+}
+
+let tabSwitches = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { 
+    tabSwitches++; 
+    document.getElementById('tabSwitchCount').textContent = tabSwitches; 
+    logEvent('tab_switch', 'Tab switched');
+    if (isStrictMode) triggerStrictAction('Tab Switch Detected');
+  }
+});
+
+window.addEventListener('blur', () => {
+  logEvent('focus_loss', 'Window lost focus');
+  if (isStrictMode) triggerStrictAction('Window Focus Lost');
+});
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && isStrictMode) {
+    triggerStrictAction('Exited Fullscreen');
+  }
+});
+
+document.addEventListener('copy', e => { e.preventDefault(); logEvent('copy_attempt','Copy blocked'); });
+document.addEventListener('paste', e => { e.preventDefault(); logEvent('paste_attempt','Paste blocked'); });
+document.addEventListener('contextmenu', e => { e.preventDefault(); logEvent('right_click','Right-click blocked'); });
+<% } %>
+</script>
+</script>
+
+<!-- Custom Submit Modal (Avoids native confirm() which causes blur event) -->
+<div id="submitModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15, 23, 42, 0.8); z-index:10000; flex-direction:column; align-items:center; justify-content:center; color:white;">
+  <div style="background:#1e293b; padding:30px; border-radius:8px; text-align:center; max-width:400px; border:1px solid #334155;">
+    <h3 style="margin-top:0; font-size:1.5rem; margin-bottom:10px;">Submit Exam?</h3>
+    <p style="color:#cbd5e1; margin-bottom:20px;">Are you sure you want to submit? This cannot be undone.</p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button type="button" class="btn btn-outline" onclick="document.getElementById('submitModal').style.display='none'">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="confirmSubmit()">Yes, Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Violation Modal (Avoids native alert() which causes blur event) -->
+<div id="violationModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(220,38,38,0.95); z-index:10000; flex-direction:column; align-items:center; justify-content:center; color:white;">
+  <div style="text-align:center; max-width:600px; padding:20px;">
+    <h2 style="font-size:2.5rem; margin-bottom:10px; font-weight:bold;">🚫 SECURITY VIOLATION</h2>
+    <p id="violationReason" style="font-size:1.5rem; margin-bottom:20px; font-weight:bold;"></p>
+    <p style="font-size:1.2rem;">This incident has been securely logged. Your exam is being submitted automatically.</p>
+  </div>
+</div>
+
+<script>
+function showSubmitModal() {
+  document.getElementById('submitModal').style.display = 'flex';
+}
+function confirmSubmit() {
+  isSubmitting = true;
+  document.getElementById('submitModal').style.display = 'none';
+  document.getElementById('examForm').submit();
+}
+</script>
+
+<%- include('../partials/footer') %>

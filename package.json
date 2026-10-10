@@ -1,0 +1,45 @@
+{
+  "name": "examguard-pro",
+  "version": "1.0.0",
+  "description": "ExamGuard Pro — Secure Exam Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "init-db": "node database/init.js",
+    "reset-db": "node -e \"['','-wal','-shm'].forEach(s=>require('fs').rmSync('database/examguard.db'+s,{force:true}))\" && node database/init.js"
+  },
+  "keywords": [
+    "exam",
+    "security",
+    "STRIDE",
+    "RBAC",
+    "ABAC"
+  ],
+  "author": "CSE243 Team",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.0",
+    "validator": "^13.11.0",
+    "xss-filters": "^1.2.7",
+    "redis": "^4.6.7",
+    "@sendgrid/mail": "^8.0.0"
+  },
+  "devDependencies": {
+    "docx": "^9.6.1",
+    "nodemon": "^3.0.2",
+    "pptxgenjs": "^4.0.1"
+  }
+}

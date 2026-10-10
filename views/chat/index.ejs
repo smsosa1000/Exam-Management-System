@@ -1,0 +1,151 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar"><h1 class="page-title">💬 Secure Chat</h1><span class="badge badge-success">🔒 E2E Encrypted</span></div>
+    <div class="content-area fade-in">
+      <div class="chat-layout">
+        <div class="chat-contacts">
+          <div style="padding:16px;border-bottom:1px solid var(--border)">
+            <input type="text" class="form-input" placeholder="Search contacts..." id="contactSearch" style="font-size:13px">
+            <button class="btn btn-sm btn-primary" onclick="openAddContactModal()" style="width:100%; margin-top:8px;">➕ Search Directory</button>
+          </div>
+          <div id="contactList">
+            <% contacts.forEach(function(c) { %>
+            <div class="contact-item" onclick="loadChat('<%= c.id %>','<%= c.full_name %>','<%= c.role %>')" id="contact-<%= c.id %>">
+              <div class="user-avatar" style="width:32px;height:32px;font-size:12px"><%= c.full_name.charAt(0) %></div>
+              <div><div style="font-weight:600;font-size:13px"><%= c.full_name %></div><div style="font-size:11px;color:var(--text-muted)"><%= c.role.replace('_',' ') %></div></div>
+            </div>
+            <% }); %>
+          </div>
+        </div>
+        <div class="chat-main">
+          <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px" id="chatHeader">
+            <span style="color:var(--text-muted)">Select a contact to start chatting</span>
+          </div>
+          <div class="encryption-badge">🔐 Messages are end-to-end encrypted</div>
+          <div class="chat-messages" id="chatMessages">
+            <div style="text-align:center;color:var(--text-muted);padding:40px">Select a contact to view messages</div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" class="form-input" id="chatInput" placeholder="Type an encrypted message..." disabled>
+            <button class="btn btn-primary" id="chatSend" onclick="sendMessage()" disabled>Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<!-- Search Directory Modal -->
+<div id="addContactModal" class="modal" style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:24px;">
+    <h3 class="card-title" style="margin-bottom:16px">Directory Search</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Search for any student or instructor to start an encrypted chat.</p>
+    <input type="text" class="form-input" id="directorySearch" placeholder="Type name or username..." oninput="searchDirectory()">
+    <div id="directoryResults" style="margin-top:16px; max-height:250px; overflow-y:auto;"></div>
+    <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('addContactModal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentReceiver = null;
+const currentUserId = '<%= typeof user !== "undefined" ? user.id : "" %>';
+
+function openAddContactModal() {
+  document.getElementById('addContactModal').style.display = 'flex';
+  document.getElementById('directorySearch').value = '';
+  document.getElementById('directoryResults').innerHTML = '';
+}
+
+async function searchDirectory() {
+  const q = document.getElementById('directorySearch').value.trim();
+  if (!q) {
+    document.getElementById('directoryResults').innerHTML = '';
+    return;
+  }
+  const res = await fetch('/chat/search?q=' + encodeURIComponent(q));
+  const data = await res.json();
+  const html = data.users.map(u => `
+    <div class="contact-item" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:10px;" onclick="addContactToSidebar('${u.id}', '${u.full_name}', '${u.role}')">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="user-avatar" style="width:32px;height:32px;font-size:12px;display:flex;align-items:center;justify-content:center;background:var(--primary);color:white;border-radius:50%;">${u.full_name.charAt(0)}</div>
+        <div>
+          <div style="font-weight:600;font-size:13px">${u.full_name}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${u.role.replace('_', ' ')}</div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary">Chat</button>
+    </div>
+  `).join('');
+  document.getElementById('directoryResults').innerHTML = html || '<div style="font-size:13px; color:var(--text-muted); text-align:center; padding:20px;">No users found.</div>';
+}
+
+function addContactToSidebar(id, name, role) {
+  document.getElementById('addContactModal').style.display = 'none';
+  if (!document.getElementById('contact-' + id)) {
+    const list = document.getElementById('contactList');
+    list.innerHTML = `
+      <div class="contact-item" onclick="loadChat('${id}','${name}','${role}')" id="contact-${id}">
+        <div class="user-avatar" style="width:32px;height:32px;font-size:12px">${name.charAt(0)}</div>
+        <div><div style="font-weight:600;font-size:13px">${name}</div><div style="font-size:11px;color:var(--text-muted)">${role.replace('_',' ')}</div></div>
+      </div>
+    ` + list.innerHTML;
+  }
+  loadChat(id, name, role);
+}
+
+function loadChat(userId, name, role) {
+  currentReceiver = userId;
+  document.querySelectorAll('.contact-item').forEach(c => c.classList.remove('active'));
+  document.getElementById('contact-' + userId)?.classList.add('active');
+  document.getElementById('chatHeader').innerHTML = `<div class="user-avatar" style="width:32px;height:32px;font-size:12px">${name.charAt(0)}</div><div><div style="font-weight:600;font-size:14px">${name}</div><div style="font-size:11px;color:var(--text-muted)">${role.replace('_',' ')}</div></div>`;
+  document.getElementById('chatInput').disabled = false;
+  document.getElementById('chatSend').disabled = false;
+  fetchMessages(userId);
+}
+
+function fetchMessages(userId) {
+  fetch('/chat/messages/' + userId)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('chatMessages');
+      if (!data.messages || data.messages.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No messages yet. Start the conversation!</div>';
+        return;
+      }
+      container.innerHTML = data.messages.map(m => `
+        <div class="chat-bubble ${m.sender_id === currentUserId ? 'sent' : 'received'}">
+          <div>${m.decrypted_message}</div>
+          <div style="font-size:10px;opacity:0.7;margin-top:4px">${new Date(m.created_at).toLocaleTimeString()}</div>
+        </div>
+      `).join('');
+      container.scrollTop = container.scrollHeight;
+    }).catch(() => {});
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg || !currentReceiver) return;
+  fetch('/chat/send', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ receiver_id: currentReceiver, message: msg })
+  }).then(r => r.json()).then(() => {
+    input.value = '';
+    fetchMessages(currentReceiver);
+  }).catch(() => {});
+}
+
+document.getElementById('chatInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+document.getElementById('contactSearch')?.addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#contactList .contact-item').forEach(c => {
+    c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+// Auto-refresh messages every 5 seconds
+setInterval(() => { if (currentReceiver) fetchMessages(currentReceiver); }, 5000);
+</script>
+<%- include('../partials/footer') %>

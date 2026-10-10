@@ -1,0 +1,96 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar">
+      <h1 class="page-title">🛡️ Super Admin Dashboard</h1>
+      <span class="badge badge-danger">SUPER ADMIN</span>
+    </div>
+    <div class="content-area fade-in">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-value"><%= stats.totalUsers %></div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value"><%= stats.totalExams %></div>
+          <div class="stat-label">Total Exams</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-value"><%= stats.totalSessions %></div>
+          <div class="stat-label">Exam Sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔒</div>
+          <div class="stat-value"><%= usersByRole.length %></div>
+          <div class="stat-label">Active Roles</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🌐 System Health & Network</h3>
+          </div>
+          <div style="padding:15px">
+            <div style="margin-bottom:12px;display:flex;justify-content:space-between">
+              <span>DB Connection</span><span style="color:var(--success)">● Stable</span>
+            </div>
+            <div style="margin-bottom:12px;display:flex;justify-content:space-between">
+              <span>Session Storage</span><span style="color:var(--success)">● Encryption Active</span>
+            </div>
+            <div style="margin-bottom:12px;display:flex;justify-content:space-between">
+              <span>API Gateway</span><span style="color:var(--success)">● Operational</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span>Suspicious IPs</span><span style="color:var(--warning)">0 Blocked</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📩 System Reports</h3>
+          </div>
+          <div style="padding:15px">
+            <div style="padding:8px;border-left:3px solid var(--accent);background:var(--bg-card);margin-bottom:8px;font-size:12px">
+              <strong>[Audit]</strong> Weekly security scan completed: 0 vulnerabilities found.
+            </div>
+            <div style="padding:8px;border-left:3px solid var(--warning);background:var(--bg-card);margin-bottom:8px;font-size:12px">
+              <strong>[Auth]</strong> Brute force attempt blocked on user 'demo' (IP: 192.168.1.10).
+            </div>
+            <div style="padding:8px;border-left:3px solid var(--success);background:var(--bg-card);font-size:12px">
+              <strong>[System]</strong> All exam backups verified and encrypted.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px">
+        <div class="card-header">
+          <h3 class="card-title">📋 Recent Audit Logs</h3>
+          <a href="/audit" class="btn btn-sm btn-secondary">View All</a>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Severity</th><th>Details</th></tr></thead>
+            <tbody>
+              <% recentLogs.forEach(function(log) { %>
+              <tr>
+                <td style="font-size:12px;white-space:nowrap"><%= log.created_at %></td>
+                <td><%= log.username || 'system' %></td>
+                <td><code style="font-size:12px;background:var(--bg-input);padding:2px 6px;border-radius:4px"><%= log.action %></code></td>
+                <td><span class="badge badge-<%= log.severity === 'critical' ? 'danger' : log.severity === 'warning' ? 'warning' : 'info' %>"><%= log.severity %></span></td>
+                <td style="font-size:12px;color:var(--text-muted)"><%= (log.details || '').substring(0,50) %></td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

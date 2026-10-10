@@ -1,0 +1,192 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar">
+      <h1 class="page-title">👥 People</h1>
+      <div class="tabs" style="display:flex; gap:24px; border-bottom:1px solid var(--border);">
+        <button class="tab-link active" onclick="openTab(event, 'students')">Students</button>
+        <button class="tab-link" onclick="openTab(event, 'groups')">Groups</button>
+        <button class="tab-link" onclick="openTab(event, 'roles')">Roles</button>
+      </div>
+    </div>
+
+    <div class="content-area fade-in">
+      <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+      <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+      <!-- TAB: STUDENTS -->
+      <div id="students" class="tab-content">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">All Students</h3></div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Full Name</th><th>Username</th><th>Department</th><th>Group</th><th>Roles</th></tr></thead>
+              <tbody>
+                <% students.forEach(s => { %>
+                <tr>
+                  <td style="font-weight:600"><%= s.full_name %></td>
+                  <td style="color:var(--text-muted)">@<%= s.username %></td>
+                  <td><%= s.department %></td>
+                  <td><span class="badge badge-info"><%= s.group_name || 'None' %></span></td>
+                  <td style="max-width:200px"><%= s.roles || '-' %></td>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: GROUPS -->
+      <div id="groups" class="tab-content" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Canvas Groups (Max 5)</h3>
+            <% if (user.role !== 'student') { %>
+            <form action="/people/groups/create" method="POST" style="display:inline">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+              <button type="submit" class="btn btn-sm btn-primary">+ New Group</button>
+            </form>
+            <% } %>
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px; padding:20px;">
+            <% groups.forEach(g => { 
+               const isFull = g.member_count >= (g.max_members || 5);
+               const amIn = myGroup === g.id;
+            %>
+            <% if (!isFull || amIn || user.role !== 'student') { %>
+            <div class="card" style="border:1px solid <%= amIn ? 'var(--primary)' : 'var(--border)' %>; position:relative;">
+              <% if (amIn) { %><span style="position:absolute; top:10px; right:10px; font-size:10px; background:var(--primary); color:white; padding:2px 8px; border-radius:10px;">My Group</span><% } %>
+              <h4 style="margin-bottom:8px;"><%= g.name %></h4>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;"><%= g.description || 'No description' %></p>
+              
+              <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="const el = document.getElementById('group-students-<%= g.id %>'); el.style.display = el.style.display === 'none' ? 'block' : 'none'">
+                <div style="font-size:11px;">👥 <%= g.member_count %> / <%= g.max_members || 5 %> members <span style="font-size:8px;">▼</span></div>
+                <div onclick="event.stopPropagation()">
+                  <% if (user.role !== 'student') { %>
+                    <form action="/people/groups/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this group?')"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><input type="hidden" name="group_id" value="<%= g.id %>"><button class="btn btn-sm btn-danger">🗑️</button></form>
+                  <% } %>
+                  <% if (amIn) { %>
+                    <form action="/people/groups/leave" method="POST"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><input type="hidden" name="group_id" value="<%= g.id %>"><button class="btn btn-sm btn-danger">Leave</button></form>
+                  <% } else if (!isFull && !myGroup && user.role === 'student') { %>
+                    <form action="/people/groups/join" method="POST"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><input type="hidden" name="group_id" value="<%= g.id %>"><button class="btn btn-sm btn-primary">Join</button></form>
+                  <% } %>
+                </div>
+              </div>
+              <div id="group-students-<%= g.id %>" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+                <% if (g.students && g.students.length > 0) { %>
+                  <% g.students.forEach(s => { %>
+                    <div style="font-size:11px; margin-bottom:4px;">• <%= s.full_name %> <span style="color:var(--text-muted)">(<%= s.department %>)</span></div>
+                  <% }) %>
+                <% } else { %>
+                  <div style="font-size:11px; color:var(--text-muted);">No students enrolled.</div>
+                <% } %>
+              </div>
+            </div>
+            <% } %>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: ROLES -->
+      <div id="roles" class="tab-content" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Custom Roles / Tags</h3>
+            <% if (user.role !== 'student') { %>
+            <button class="btn btn-sm btn-primary" onclick="document.getElementById('createRoleModal').style.display='flex'">+ New Role</button>
+            <% } %>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Role Name</th><th>Type</th><th>Members</th><th>Actions</th></tr></thead>
+              <tbody>
+                <% roles.forEach(r => { 
+                   const isIn = myRoles.includes(r.id);
+                %>
+                <tr>
+                  <td style="font-weight:600"><%= r.name %></td>
+                  <td><span class="badge badge-<%= r.is_public ? 'info' : 'warning' %>"><%= r.is_public ? 'Public' : 'Private' %></span></td>
+                  <td><%= r.member_count %></td>
+                  <td>
+                    <% if (user.role !== 'student') { %>
+                      <button class="btn btn-sm btn-secondary" onclick="openAssignModal('<%= r.id %>', '<%= r.name %>')">Assign</button>
+                      <form action="/people/roles/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this role?')"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><input type="hidden" name="role_id" value="<%= r.id %>"><button class="btn btn-sm btn-danger">🗑️</button></form>
+                    <% } else if (r.is_public && !isIn) { %>
+                      <form action="/people/roles/join" method="POST"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><input type="hidden" name="role_id" value="<%= r.id %>"><button class="btn btn-sm btn-primary">Join</button></form>
+                    <% } else if (isIn) { %>
+                      <span class="badge badge-success">Joined</span>
+                    <% } %>
+                  </td>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div id="createRoleModal" class="modal" style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:24px;">
+    <h3>Create Custom Role</h3>
+    <form action="/people/roles/create" method="POST">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+      <div class="form-group"><label class="form-label">Role Name</label><input type="text" name="name" class="form-input" required></div>
+      <div class="form-group" style="display:flex; align-items:center; gap:10px;"><input type="checkbox" name="is_public" id="is_public" checked><label for="is_public">Public (Students can join)</label></div>
+      <div style="display:flex; justify-content:flex-end; gap:12px;"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').style.display='none'">Cancel</button><button type="submit" class="btn btn-primary">Create</button></div>
+    </form>
+  </div>
+</div>
+
+<div id="assignRoleModal" class="modal" style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+  <div class="card" style="width:500px; padding:24px;">
+    <h3 id="assignTitle">Assign Role</h3>
+    <form action="/people/roles/assign" method="POST">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+      <input type="hidden" name="role_id" id="assignRoleId">
+      <div style="max-height:300px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; margin:16px 0;">
+        <% students.forEach(s => { %>
+          <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); cursor:pointer;">
+            <input type="checkbox" name="student_ids" value="<%= s.id %>">
+            <div><div style="font-weight:600; font-size:13px;"><%= s.full_name %></div><div style="font-size:11px; color:var(--text-muted);"><%= s.department %></div></div>
+          </label>
+        <% }); %>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:12px;"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').style.display='none'">Cancel</button><button type="submit" class="btn btn-primary">Save Assignments</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openTab(evt, tabName) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tab-content");
+  for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; }
+  tablinks = document.getElementsByClassName("tab-link");
+  for (i = 0; i < tablinks.length; i++) { tablinks[i].className = tablinks[i].className.replace(" active", ""); }
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+
+function openAssignModal(id, name) {
+  document.getElementById('assignRoleId').value = id;
+  document.getElementById('assignTitle').textContent = 'Assign Role: ' + name;
+  document.getElementById('assignRoleModal').style.display = 'flex';
+}
+
+// Handle anchor links for tabs
+window.onload = () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    const tabBtn = Array.from(document.querySelectorAll('.tab-link')).find(btn => btn.textContent.toLowerCase() === hash);
+    if (tabBtn) tabBtn.click();
+  }
+}
+</script>
+<%- include('../partials/footer') %>

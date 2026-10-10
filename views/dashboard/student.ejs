@@ -1,0 +1,58 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar">
+      <h1 class="page-title">🎓 Student Dashboard</h1>
+      <span class="badge badge-success">STUDENT</span>
+    </div>
+    <div class="content-area fade-in">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-value"><%= stats.totalEnrolled %></div><div class="stat-label">Enrolled Exams</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value"><%= stats.totalCompleted %></div><div class="stat-label">Completed</div></div>
+        <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value"><%= stats.avgScore %>%</div><div class="stat-label">Average Score</div></div>
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value"><%= myGroups.length > 0 ? myGroups.length : '—' %></div><div class="stat-label">My Group</div></div>
+      </div>
+      
+      <!-- Join Exam via Room Code -->
+      <div class="card" style="margin-bottom:24px; display:flex; align-items:center; gap:16px; background:var(--bg-card); padding:16px; border-left:4px solid var(--primary);">
+        <div style="font-size:24px;">🔑</div>
+        <div style="flex-grow:1;">
+          <h3 style="margin:0; font-size:16px;">Join Exam via Room Code</h3>
+          <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">Enter the 6-character room code provided by your instructor to enroll in an exam.</p>
+        </div>
+        <form method="POST" action="/exams/join" style="display:flex; gap:8px; align-items:center;">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+          <input type="text" class="form-input" name="room_code" placeholder="e.g. A1B2C3" style="width:150px; text-transform:uppercase;" required maxlength="10">
+          <button type="submit" class="btn btn-primary">Join Room</button>
+        </form>
+      </div>
+
+      <!-- Upcoming / Available Exams -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header"><h3 class="card-title">📝 Available Exams</h3></div>
+        <% if (enrolledExams.length === 0) { %>
+          <p style="color:var(--text-muted);text-align:center;padding:20px">No exams available. Use a Room Code above to join one.</p>
+        <% } else { enrolledExams.forEach(function(exam) { %>
+        <div style="padding:16px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:600;font-size:15px"><%= exam.title %></div>
+            <div style="font-size:12px;color:var(--text-muted)"><%= exam.course_name %> · By <%= exam.instructor_name %></div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">⏱ <%= exam.duration_minutes %> min · 📊 <%= exam.total_marks %> marks · Attempts: <%= exam.attempt_count %>/<%= exam.max_attempts %></div>
+          </div>
+          <div>
+            <% if (exam.attempt_count < exam.max_attempts) { %>
+              <a href="/exams/<%= exam.id %>/take" class="btn btn-primary btn-sm">▶ Start Exam</a>
+            <% } else { %>
+              <span class="badge badge-info">Completed</span>
+            <% } %>
+          </div>
+        </div>
+        <% }); } %>
+      </div>
+
+
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

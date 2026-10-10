@@ -1,0 +1,53 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar">
+      <h1 class="page-title">🌐 Network & System Status</h1>
+      <span class="badge badge-primary">SYSTEM</span>
+    </div>
+    <div class="content-area fade-in">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">⏱️</div><div class="stat-value"><%= Math.floor(uptime / 60 / 60) %>h <%= Math.floor((uptime / 60) % 60) %>m</div><div class="stat-label">System Uptime</div></div>
+        <div class="stat-card"><div class="stat-icon">💾</div><div class="stat-value"><%= memory.free %> MB</div><div class="stat-label">Free Memory (of <%= memory.total %> MB)</div></div>
+        <div class="stat-card"><div class="stat-icon">🔐</div><div class="stat-value">Active</div><div class="stat-label">Security Layer Status</div></div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="card-header"><h3 class="card-title">Network Interfaces</h3></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Interface Name</th>
+                <th>IP Address</th>
+                <th>MAC Address</th>
+                <th>Family</th>
+                <th>Internal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% Object.keys(networkInterfaces).forEach(function(iface) { 
+                 networkInterfaces[iface].forEach(function(details) { %>
+              <tr>
+                <td style="font-weight:600"><%= iface %></td>
+                <td style="font-family:monospace; color:var(--primary)"><%= details.address %></td>
+                <td style="font-family:monospace; color:var(--text-muted)"><%= details.mac %></td>
+                <td><span class="badge badge-info"><%= details.family %></span></td>
+                <td>
+                  <% if (details.internal) { %>
+                    <span class="badge badge-warning">Yes</span>
+                  <% } else { %>
+                    <span class="badge badge-success">No</span>
+                  <% } %>
+                </td>
+              </tr>
+              <% }); }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

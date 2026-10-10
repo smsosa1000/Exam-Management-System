@@ -1,0 +1,131 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar"><h1 class="page-title"><%= typeof viewMode !== 'undefined' && viewMode === 'questions' ? '❓ Manage Questions' : '📝 Exams' %></h1></div>
+    <div class="content-area fade-in">
+      <% if (typeof viewMode !== 'undefined' && viewMode === 'questions' && typeof exam !== 'undefined') { %>
+        <!-- Question Management Mode -->
+        <div class="card" style="margin-bottom:24px">
+          <h3 class="card-title">📝 <%= exam.title %> — Questions (<%= questions.length %>)</h3>
+        </div>
+        <% if (typeof isReadOnly === 'undefined' || !isReadOnly) { %>
+        <div class="card" style="margin-bottom:24px">
+          <h3 class="card-title" style="margin-bottom:16px">➕ Add Question</h3>
+          <form method="POST" action="/exams/<%= exam.id %>/add-question">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+            <div class="form-group"><label class="form-label">Question Text *</label><textarea class="form-textarea" name="question_text" required></textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div class="form-group"><label class="form-label">Type</label>
+                <select class="form-select" name="question_type" id="questionTypeSelect"><option value="mcq">Multiple Choice</option><option value="true_false">True/False</option><option value="open_ended">Open Ended</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">Marks</label><input type="number" class="form-input" name="marks" value="5" min="1"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Options (one per line, for MCQ/TF)</label><textarea class="form-textarea" name="options" id="optionsTextarea" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea></div>
+            <div class="form-group"><label class="form-label" id="correctAnswerLabel">Correct Answer (Leave empty for Open Ended)</label><select class="form-select" name="correct_answer" id="correctAnswerInput"><option value="">Select correct answer...</option></select></div>
+            <button type="submit" class="btn btn-primary">➕ Add Question</button>
+          </form>
+          <script>
+            function updateCorrectAnswerDropdown() {
+              const type = document.getElementById('questionTypeSelect').value;
+              const select = document.getElementById('correctAnswerInput');
+              const optsTextarea = document.getElementById('optionsTextarea');
+              
+              if (type === 'open_ended') {
+                select.innerHTML = '<option value="">Not Applicable</option>';
+                select.removeAttribute('required');
+                return;
+              }
+              
+              select.setAttribute('required', 'true');
+              let options = [];
+              if (type === 'true_false') {
+                options = ['True', 'False'];
+              } else {
+                options = optsTextarea.value.split('\n').map(o => o.trim()).filter(Boolean);
+              }
+              
+              const currentVal = select.value;
+              select.innerHTML = '<option value="">Select correct answer...</option>';
+              options.forEach(opt => {
+                const optionEl = document.createElement('option');
+                optionEl.value = opt;
+                optionEl.textContent = opt;
+                if (opt === currentVal) optionEl.selected = true;
+                select.appendChild(optionEl);
+              });
+            }
+            
+            document.getElementById('questionTypeSelect').addEventListener('change', function() {
+              const optsTextarea = document.getElementById('optionsTextarea');
+              if (this.value === 'true_false') {
+                optsTextarea.value = 'True\nFalse';
+                optsTextarea.readOnly = true;
+              } else if (this.value === 'open_ended') {
+                optsTextarea.value = '';
+                optsTextarea.readOnly = true;
+              } else {
+                if (optsTextarea.value === 'True\nFalse') optsTextarea.value = '';
+                optsTextarea.readOnly = false;
+              }
+              updateCorrectAnswerDropdown();
+            });
+            
+            document.getElementById('optionsTextarea').addEventListener('input', updateCorrectAnswerDropdown);
+            
+            window.addEventListener('DOMContentLoaded', () => {
+              updateCorrectAnswerDropdown();
+            });
+          </script>
+        </div>
+        <% } else { %>
+        <div class="alert alert-info">🛡️ This exam is published or has ended. Editing is disabled to maintain academic integrity.</div>
+        <% } %>
+        <% questions.forEach(function(q, idx) { %>
+        <div class="question-card">
+          <div class="question-number">Question <%= idx + 1 %> <span class="question-marks">(<%= q.marks %> marks · <%= q.question_type %>)</span></div>
+          <div class="question-text"><%= q.question_text %></div>
+          <% if (q.question_type !== 'open_ended') { try { JSON.parse(q.options).forEach(function(opt) { %>
+            <div style="padding:6px 12px;margin:4px 0;background:var(--bg-input);border-radius:6px;font-size:13px;border:1px solid <%= opt === q.correct_answer ? 'var(--success)' : 'var(--border)' %>">
+              <%= opt === q.correct_answer ? '✅' : '○' %> <%= opt %>
+            </div>
+          <% }); } catch(e) {} } %>
+        </div>
+        <% }); %>
+      <% } else { %>
+        <!-- Exam List Mode -->
+        <% if (typeof user !== 'undefined' && (user.role === 'admin' || user.role === 'super_admin')) { %>
+          <div style="margin-bottom:20px"><a href="/exams/create" class="btn btn-primary">➕ Create New Exam</a></div>
+        <% } %>
+        <% if (typeof exams !== 'undefined' && exams.length === 0) { %>
+          <div class="card" style="text-align:center;padding:60px"><p style="color:var(--text-muted);font-size:16px">No exams found.</p></div>
+        <% } else if (typeof exams !== 'undefined') { %>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Title</th><th>Course</th><th>Duration</th><th>Marks</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <% exams.forEach(function(e) { %>
+              <tr>
+                <td style="font-weight:600"><%= e.title %></td>
+                <td><%= e.course_name %></td>
+                <td><%= e.duration_minutes %> min</td>
+                <td><%= e.total_marks %></td>
+                <td><span class="badge badge-<%= e.status === 'published' ? 'success' : e.status === 'draft' ? 'warning' : 'info' %>"><%= e.status %></span></td>
+                <td>
+                  <% if (typeof user !== 'undefined' && user.role === 'student') { %>
+                    <a href="/exams/<%= e.id %>/take" class="btn btn-sm btn-primary">▶ Take</a>
+                  <% } else { %>
+                    <a href="/exams/<%= e.id %>/manage-questions" class="btn btn-sm btn-secondary">Manage</a>
+                  <% } %>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+        <% } %>
+      <% } %>
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

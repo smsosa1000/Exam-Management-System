@@ -1,0 +1,88 @@
+<%- include('../partials/header') %>
+<div class="auth-container">
+  <div class="auth-card fade-in">
+    <div class="auth-logo">
+      <div class="logo-icon">🛡️</div>
+      <h1>ExamGuard Pro</h1>
+      <p>Secure Exam Management System</p>
+    </div>
+    <% if (error) { %>
+      <div class="alert alert-error">⚠️ <%= error %></div>
+    <% } %>
+    <form method="POST" action="/auth/login" id="loginForm">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <!-- Username -->
+      <div class="form-group">
+        <label class="form-label" for="username">👤 Username</label>
+        <input type="text" class="form-input" id="username" name="username" placeholder="Enter your username" required autocomplete="username">
+      </div>
+
+      <!-- Password with eye toggle -->
+      <div class="form-group">
+        <label class="form-label" for="password">🔑 Password</label>
+        <div style="position:relative;">
+          <input type="password" class="form-input" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password" style="padding-right:40px;">
+          <button type="button" onclick="togglePassword('password')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px;" title="Show/Hide Password">👁️</button>
+        </div>
+      </div>
+
+      <!-- 2FA Device Code (Required) -->
+      <div class="form-group">
+        <label class="form-label" for="2fa">📱 2FA Device Code</label>
+        <input type="text" class="form-input" id="2fa" name="two_factor_code" placeholder="Enter 5-digit device code" required maxlength="5" autocomplete="off">
+        <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px;">Enter the code from your registered authenticator device</div>
+      </div>
+
+      <!-- Text CAPTCHA -->
+      <div class="form-group">
+        <label class="form-label">🛡️ Security Verification</label>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div id="captcha-display" style="
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #00d4ff;
+            text-shadow: 0 0 8px rgba(0,212,255,0.5), 2px 2px 0 rgba(255,0,100,0.3);
+            user-select: none;
+            position: relative;
+            min-width: 140px;
+            text-align: center;
+            background-image:
+              repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px),
+              repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 6px);
+          "><span style="display:inline-block; transform:rotate(-3deg)"><%= typeof captchaCode !== 'undefined' ? captchaCode : '...' %></span></div>
+          <input type="text" class="form-input" name="captcha_input" placeholder="Type code shown" required maxlength="5" autocomplete="off" style="flex:1;" spellcheck="false">
+        </div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px;">Case-sensitive • Type the 5 characters exactly as shown</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block">🔐 Sign In</button>
+    </form>
+    <div style="text-align:center;margin-top:20px">
+      <a href="/auth/register" style="color:var(--accent);text-decoration:none;font-size:14px">Don't have an account? Register</a>
+    </div>
+    <div class="demo-creds" style="text-align:center;margin-top:20px;padding:15px;background:rgba(255,255,255,0.05);border-radius:10px;border:1px solid rgba(255,255,255,0.1)">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">🔑 DEMO CREDENTIALS</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;font-size:11px;color:rgba(255,255,255,0.6)">
+        <div><strong>Admin:</strong> SAdmin / SuperAdmin@2025!</div>
+        <div><strong>Teacher:</strong> Teacher / Instructor@2025!</div>
+        <div><strong>Student:</strong> Student / Dem@1000335</div>
+        <div style="margin-top:4px;color:rgba(0,212,255,0.7)"><strong>2FA Device Code:</strong> 12345</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function togglePassword(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
+<%- include('../partials/footer') %>
+

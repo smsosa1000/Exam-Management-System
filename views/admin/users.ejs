@@ -1,0 +1,50 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar"><h1 class="page-title">👥 User Management</h1><button class="btn btn-primary btn-sm" onclick="document.getElementById('createModal').classList.add('show')">➕ Create User</button></div>
+    <div class="content-area fade-in">
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+          <tbody>
+            <% users.forEach(function(u) { %>
+            <tr>
+              <td style="font-weight:600"><%= u.full_name %></td>
+              <td>@<%= u.username %></td>
+              <td style="font-size:12px"><%= u.email %></td>
+              <td><span class="badge badge-<%= u.role === 'super_admin' ? 'danger' : u.role === 'admin' ? 'warning' : 'info' %>"><%= u.role.replace('_',' ') %></span></td>
+              <td><%= u.department || '-' %></td>
+              <td><span class="badge badge-<%= u.is_locked ? 'danger' : 'success' %>"><%= u.is_locked ? 'Locked' : 'Active' %></span></td>
+              <td style="font-size:12px"><%= u.last_login || 'Never' %></td>
+              <td>
+                <div style="display:flex;gap:4px">
+                  <form method="POST" action="/admin/users/<%= u.id %>/toggle-lock" style="display:inline"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><button type="submit" class="btn btn-sm <%= u.is_locked ? 'btn-success' : 'btn-warning' %>"><%= u.is_locked ? '🔓' : '🔒' %></button></form>
+                  <form method="POST" action="/admin/users/<%= u.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this user?')"><input type="hidden" name="_csrf" value="<%= locals.csrfToken %>"><button type="submit" class="btn btn-sm btn-danger">🗑️</button></form>
+                </div>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<!-- Create User Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-title">➕ Create New User</div>
+    <form method="POST" action="/admin/users/create">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+      <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" name="full_name" required></div>
+      <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" name="username" required></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" name="email" required></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" name="password" required minlength="8"></div>
+      <div class="form-group"><label class="form-label">Role</label><select class="form-select" name="role"><option value="student">Student</option><option value="admin">Instructor</option><option value="super_admin">Super Admin</option></select></div>
+      <div class="form-group"><label class="form-label">Department</label><input type="text" class="form-input" name="department"></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end"><button type="button" class="btn btn-secondary" onclick="document.getElementById('createModal').classList.remove('show')">Cancel</button><button type="submit" class="btn btn-primary">Create</button></div>
+    </form>
+  </div>
+</div>
+<%- include('../partials/footer') %>

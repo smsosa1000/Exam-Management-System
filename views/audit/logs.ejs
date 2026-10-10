@@ -1,0 +1,46 @@
+<%- include('../partials/header') %>
+<div class="app-layout">
+  <%- include('../partials/sidebar') %>
+  <main class="main-content">
+    <div class="top-bar"><h1 class="page-title">📋 Audit Logs</h1><span class="badge badge-info"><%= total %> entries</span></div>
+    <div class="content-area fade-in">
+      <div class="card" style="margin-bottom:24px">
+        <form method="GET" action="/audit" style="display:flex;gap:12px;align-items:flex-end">
+          <div class="form-group" style="margin:0;flex:1"><label class="form-label">Severity</label><select class="form-select" name="severity"><option value="">All</option><option value="info" <%= severity==='info'?'selected':'' %>>Info</option><option value="warning" <%= severity==='warning'?'selected':'' %>>Warning</option><option value="critical" <%= severity==='critical'?'selected':'' %>>Critical</option></select></div>
+          <div class="form-group" style="margin:0;flex:2"><label class="form-label">Action</label><input type="text" class="form-input" name="action" value="<%= action || '' %>" placeholder="Filter by action..."></div>
+          <button type="submit" class="btn btn-primary">🔍 Filter</button>
+        </form>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Resource</th><th>Severity</th><th>IP</th><th>Details</th></tr></thead>
+          <tbody>
+            <% logs.forEach(function(log) { %>
+            <tr class="log-entry">
+              <td style="font-size:12px;white-space:nowrap;font-family:monospace;color:var(--primary)">
+                <%= new Date(log.created_at).toLocaleDateString() %> <br>
+                <%= new Date(log.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+              </td>
+              <td><%= log.username || 'system' %></td>
+              <td><code style="font-size:11px;background:var(--bg-input);padding:2px 6px;border-radius:4px"><%= log.action %></code></td>
+              <td style="font-size:12px"><%= log.resource || '-' %></td>
+              <td><span class="badge badge-<%= log.severity === 'critical' ? 'danger' : log.severity === 'warning' ? 'warning' : log.severity === 'error' ? 'danger' : 'info' %>"><%= log.severity %></span></td>
+              <td style="font-size:12px;font-family:monospace"><%= log.ip_address || '-' %></td>
+              <td style="font-size:12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis"><%= (log.details || '-').substring(0,60) %></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+      <% if (totalPages > 1) { %>
+      <div class="pagination">
+        <% for (let i = 1; i <= totalPages; i++) { %>
+          <% if (i === currentPage) { %><span class="active"><%= i %></span><% } else { %>
+          <a href="/audit?page=<%= i %><%= severity ? '&severity='+severity : '' %><%= action ? '&action='+action : '' %>"><%= i %></a><% } %>
+        <% } %>
+      </div>
+      <% } %>
+    </div>
+  </main>
+</div>
+<%- include('../partials/footer') %>

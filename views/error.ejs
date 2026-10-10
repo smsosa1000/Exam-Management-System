@@ -1,0 +1,10 @@
+<%- include('./partials/header') %>
+<div class="error-page">
+  <div class="fade-in" style="text-align:center">
+    <div class="error-code"><%= typeof code !== 'undefined' ? code : 500 %></div>
+    <h2 style="margin:16px 0 8px;font-size:24px"><%= typeof title !== 'undefined' ? title : 'Error' %></h2>
+    <p style="color:var(--text-muted);margin-bottom:32px"><%= typeof message !== 'undefined' ? message : 'Something went wrong' %></p>
+    <a href="/dashboard" class="btn btn-primary">← Back to Dashboard</a>
+  </div>
+</div>
+<%- include('./partials/footer') %>

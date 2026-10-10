@@ -1,0 +1,46 @@
+<!-- ExamGuard Pro — Sidebar Partial -->
+<% const currentPath = typeof reqPath !== 'undefined' ? reqPath : ''; %>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">🛡️</div>
+    <div>
+      <div class="sidebar-title">ExamGuard Pro</div>
+      <div class="sidebar-subtitle">Secure EMS</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="/dashboard" class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="/people" class="nav-link"><span class="icon">👥</span> People</a>
+      <a href="/exams" class="nav-link"><span class="icon">📝</span> Exams</a>
+      <% if (typeof user !== 'undefined' && user && user.role === 'student') { %>
+      <a href="/grades" class="nav-link"><span class="icon">📈</span> My Grades</a>
+      <% } %>
+      <a href="/chat" class="nav-link"><span class="icon">💬</span> Secure Chat</a>
+    </div>
+    <% if (typeof user !== 'undefined' && user && (user.role === 'super_admin' || user.role === 'admin')) { %>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <% if (user.role === 'admin') { %>
+      <a href="/exams/create" class="nav-link"><span class="icon">➕</span> Create Exam</a>
+      <% } %>
+      <% if (user.role === 'super_admin') { %>
+      <a href="/admin/users" class="nav-link"><span class="icon">👥</span> User Management</a>
+      <a href="/audit" class="nav-link"><span class="icon">📋</span> Global Audit Logs</a>
+      <a href="/admin/network" class="nav-link"><span class="icon">🌐</span> Network Status</a>
+      <% } %>
+    </div>
+    <% } %>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar"><%= typeof user !== 'undefined' && user ? user.full_name.charAt(0) : '?' %></div>
+      <div>
+        <div class="user-name"><%= typeof user !== 'undefined' && user ? user.full_name : 'Guest' %></div>
+        <div class="user-role"><%= typeof user !== 'undefined' && user ? user.role.replace('_',' ').toUpperCase() : '' %></div>
+      </div>
+    </div>
+    <a href="/auth/logout" class="btn btn-secondary btn-sm btn-block" style="margin-top:8px">🚪 Logout</a>
+  </div>
+</aside>
